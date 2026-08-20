@@ -9,8 +9,10 @@ import {
   Circle,
   ChevronDown,
   Settings2,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { useHealth } from "@/hooks/queries";
 
@@ -28,6 +30,7 @@ function titleFor(pathname: string): string {
 }
 
 export default function Layout() {
+  const { logout } = useAuth();
   const { userId, setUserId } = useWorkspace();
   const { data: health } = useHealth();
   const location = useLocation();
@@ -87,6 +90,20 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
+
+        {/* Logout */}
+        <div className="border-t border-line p-3">
+          <button
+            onClick={() => {
+              logout();
+              navigate("/login", { replace: true });
+            }}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-mist transition-colors hover:bg-rose-500/10 hover:text-rose-300"
+          >
+            <LogOut className="h-4 w-4" />
+            Log out
+          </button>
+        </div>
 
         {/* Workspace switcher */}
         <div className="border-t border-line p-3">
