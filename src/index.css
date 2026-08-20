@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-ink-900 text-slate-200 antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  background-image:
+    radial-gradient(1200px 500px at 85% -10%, rgba(99, 102, 241, 0.14), transparent 60%),
+    radial-gradient(900px 420px at -10% 10%, rgba(139, 92, 246, 0.08), transparent 55%),
+    radial-gradient(700px 380px at 50% 110%, rgba(52, 211, 153, 0.05), transparent 60%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(99, 102, 241, 0.4);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-ink-850/80 shadow-card backdrop-blur-sm;
+  }
+
+  .card-hover {
+    @apply transition-all duration-200 hover:border-accent/30 hover:bg-ink-800/80 hover:shadow-softglow;
+  }
+
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-mist;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-accent-soft via-glow to-accent-soft bg-clip-text text-transparent;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-accent to-accent-deep px-4 py-2.5 text-sm font-semibold text-white shadow-glow transition-all duration-200 hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-ink-800/80 px-4 py-2.5 text-sm font-medium text-slate-200 transition-all duration-200 hover:border-accent/40 hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-mist transition-colors duration-150 hover:bg-white/5 hover:text-white disabled:opacity-50;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-line bg-ink-900/80 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-600 outline-none transition-all duration-150 focus:border-accent/60 focus:ring-2 focus:ring-accent/25;
+  }
+
+  .chip-input {
+    @apply mt-2 flex flex-wrap gap-2;
+  }
+
+  .skeleton {
+    @apply animate-shimmer rounded-lg bg-gradient-to-r from-ink-800 via-ink-700 to-ink-800 bg-[length:400px_100%];
+  }
+}
