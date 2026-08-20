@@ -20,7 +20,10 @@ import type {
 
 /**
  * API client for the Nudge Global Orchestrator (FastAPI, default :8100).
- * CORS is wide-open on the backend, so the browser can call it directly.
+ *
+ * Authentication is handled via an httpOnly cookie set by the backend.
+ * All requests include ``credentials: "include"`` so the browser attaches
+ * the cookie automatically — no manual Authorization header needed.
  */
 
 export const API_BASE: string =
@@ -35,13 +38,25 @@ class ApiError extends Error {
   }
 }
 
+// ── 401 handler ────────────────────────────────────────────────────────
+// Registered by AuthContext/App so unauthenticated responses redirect to login.
+let _onAuthFailure: (() => void) | null = null;
+
+/** Called by App to register a 401 handler (redirects to /login). */
+export function setOnAuthFailure(handler: (() => void) | null) {
+  _onAuthFailure = handler;
+}
+
+// ── Core request function ──────────────────────────────────────────────
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options.headers as Record<string, string> | undefined),
+  };
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
+    credentials: "include",   // ← send httpOnly cookie cross-origin
+    headers,
   });
   if (!res.ok) {
     let detail = `HTTP ${res.status}`;
@@ -51,6 +66,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       else if (typeof body?.message === "string") detail = body.message;
     } catch {
       /* keep default */
+    }
+    // On 401: cookie expired or invalid — clear auth and redirect to login
+    if (res.status === 401 && _onAuthFailure) {
+      _onAuthFailure();
     }
     throw new ApiError(res.status, detail);
   }
@@ -67,6 +86,41 @@ const patch = <T>(path: string, body: unknown) =>
 
 export const getHealth = () =>
   request<{ status: string; mock?: boolean }>("/health");
+
+// ── Auth ─────────────────────────────────────────────────
+
+export interface AuthUserInfo {
+  user_id: string;
+  email: string;
+  display_name: string;
+}
+
+export const authMe = () => request<AuthUserInfo>("/auth/me");
+
+export const authLogout = () =>
+  request<{ message: string }>("/auth/logout", { method: "POST" });
+
+export interface LoginResponse {
+  user_id: string;
+  email: string;
+  display_name: string;
+}
+
+export const authLogin = (email: string, password: string) =>
+  request<LoginResponse>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+
+export const authRegister = (
+  email: string,
+  password: string,
+  display_name?: string,
+) =>
+  request<LoginResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ email, password, display_name: display_name ?? "" }),
+  });
 
 // ── Campaign parameters (draft persisted per campaign, T8) ─
 
@@ -288,9 +342,6 @@ export interface UpdateSequenceStep {
   step_num: number;
   action_type: string;
   channel: string;
-  // Prospect-local schedule (source of truth for timing edits). The backend
-  // deterministically derives the UTC instant, wait_delay, day_offset and
-  // time_of_day from these two fields using the prospect's timezone.
   scheduled_date?: string | null;
   scheduled_time?: string | null;
   strategy_notes: string;

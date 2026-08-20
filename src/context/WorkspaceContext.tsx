@@ -1,12 +1,18 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useAuth } from "./AuthContext";
 
 /**
- * Lightweight workspace identity. The backend has no auth — a user_id is the
- * only identity, and it scopes every table (campaigns, params, blacklist…).
- * Persisted to localStorage so a refresh keeps you in the same workspace.
+ * Workspace identity context.
+ *
+ * The user_id is the only identity, and it scopes every table (campaigns,
+ * params, blacklist…).  Now derived from the authenticated user rather than
+ * a free-text input — the user_id stored in the JWT is the source of truth.
+ *
+ * Legacy localStorage key is kept for backwards-compat but no longer
+ * drives the default when an authenticated user is present.
  */
 
-const STORAGE_KEY = "nudge_console_user_id";
+const LEGACY_STORAGE_KEY = "nudge_console_user_id";
 
 interface WorkspaceContextValue {
   userId: string;
@@ -16,19 +22,31 @@ interface WorkspaceContextValue {
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+
+  // Prefer the authenticated user's ID; fall back to localStorage for
+  // unauthenticated or transitional states.
   const [userId, setUserIdState] = useState<string>(() => {
+    if (user?.userId) return user.userId;
     try {
-      return localStorage.getItem(STORAGE_KEY) ?? "user-1";
+      return localStorage.getItem(LEGACY_STORAGE_KEY) ?? "user-1";
     } catch {
       return "user-1";
     }
   });
 
+  // When the auth user changes (login/logout), sync the workspace userId
+  useEffect(() => {
+    if (user?.userId) {
+      setUserIdState(user.userId);
+    }
+  }, [user?.userId]);
+
   const setUserId = (id: string) => {
     const clean = id.trim();
     setUserIdState(clean || "user-1");
     try {
-      localStorage.setItem(STORAGE_KEY, clean || "user-1");
+      localStorage.setItem(LEGACY_STORAGE_KEY, clean || "user-1");
     } catch {
       /* ignore */
     }
@@ -36,7 +54,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, userId);
+      localStorage.setItem(LEGACY_STORAGE_KEY, userId);
     } catch {
       /* ignore */
     }
